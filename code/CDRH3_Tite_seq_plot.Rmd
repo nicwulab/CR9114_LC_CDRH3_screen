@@ -6,8 +6,8 @@ date: "2023-01-25"
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-if(!file.exists("result")){
-  dir.create(file.path("result"))
+if(!file.exists("../result")){
+  dir.create(file.path("../result"))
 }
 if(!file.exists("KD regression")){
   dir.create(file.path("KD regression"))
@@ -225,7 +225,7 @@ dt_long <- gather(dt, bin, count, bin_0_1:bin_2_2, factor_key=TRUE)
 dt_norm <- merge(dt_long,ratio_df,by=c('concentration','bin'))%>%
   mutate(count_norm=count/ratio)
 # save date
-write.csv(dt_norm,'result/CDRH3_count_table_norm.csv')
+write.csv(dt_norm,'../result/CDRH3_count_table_norm.csv')
 
 # long to wide
 dt <- spread(dt_norm %>%dplyr::select(ID,concentration,bin,count_norm), bin, count_norm)
@@ -321,7 +321,7 @@ kd_summary <- kd_df %>%
   dplyr::select(ID, Kd, Kd_SE,p.value) %>%
   unique()
 # save kd table
-write.csv(kd_summary,"./result/CDRH3_KD_table_summary.csv", row.names = FALSE)
+write.csv(kd_summary,"../result/CDRH3_KD_table_summary.csv", row.names = FALSE)
 
 ```
 

@@ -6,8 +6,8 @@ date: "2023-01-28"
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-if(!file.exists("result")){
-  dir.create(file.path("result"))
+if(!file.exists("../result")){
+  dir.create(file.path("../result"))
 }
 if(!file.exists("KD regression")){
   dir.create(file.path("KD regression"))
