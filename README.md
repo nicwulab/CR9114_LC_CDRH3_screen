@@ -7,7 +7,8 @@ conda env create -f env.yml
 
 or create ENV with commands
 
-```conda create -n CDRH3 python=3.9
+```
+conda create -n CDRH3 python=3.9
 conda activate CDRH3
 conda install -c bioconda -c anaconda -c conda-forge \
   pear \
