@@ -1,4 +1,5 @@
-## Probing the sequence constraints of CR9114 CDR H3 and light chain
+# Probing the sequence constraints of CR9114 CDR H3 and light chain
+
 
 ## ENV setup
 ```
@@ -20,13 +21,9 @@ conda install -c bioconda -c anaconda -c conda-forge \
 ```
 
 ## Pipeline Usage
-
-Run the snakemake pipeline to get the sequence read count:
-```
-./pipeline.sh
-```
-
-for KD NLS regression, run the notebook [CDRH3_Tite_seq_plot.Rmd](./code/CDRH3_Tite_seq_plot.Rmd) by R
+1. Download raw read files in fastq format from NIH SRA database [BioProject PRJNA976657](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA976657)
+2. Run the Snakemake pipeline ``./code/pipeline.sh`` to get the sequence read count:
+3. Run the notebook [CDRH3_Tite_seq_plot.Rmd](./code/CDRH3_Tite_seq_plot.Rmd) using R for KD NLS regression
 
 ## Analysis of Light chain variants
 1. Run ``python3 code/analyze_LC.py`` to compute expression and binding scores for light chain variants and plot sequence logos using [Logomaker](https://logomaker.readthedocs.io/en/latest/).
