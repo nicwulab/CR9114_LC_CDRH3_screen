@@ -29,5 +29,8 @@ Run the snakemake pipeline to get the sequence read count:
 
 for KD NLS regression, run the notebook [CDRH3_Tite_seq_plot.Rmd](./code/CDRH3_Tite_seq_plot.Rmd) by R
 
-## Analysis
-1. Run ``python3 code/analyze_LC.py`` to compute expression and binding scores for light chain variants.
+## Analysis of Light chain variants
+1. Run ``python3 code/analyze_LC.py`` to compute expression and binding scores for light chain variants and plot sequence logos.
+2. Run ``Rscript code/plot_LC.R`` to plot analysis of light chain variants.
+
+## Analysis of CDR H3 variants
