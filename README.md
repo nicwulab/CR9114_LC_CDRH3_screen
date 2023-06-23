@@ -15,7 +15,9 @@ conda install -c bioconda -c anaconda -c conda-forge \
   biopython \
   cutadapt \
   snakemake \
-  argparse
+  argparse \
+  logomaker \
+  openpyxl 
 ```
 
 ## Pipeline Usage
@@ -26,3 +28,6 @@ Run the snakemake pipeline to get the sequence read count:
 ```
 
 for KD NLS regression, run the notebook [CDRH3_Tite_seq_plot.Rmd](./code/CDRH3_Tite_seq_plot.Rmd) by R
+
+## Analysis
+1. Run ``python3 code/analyze_LC.py`` to compute expression and binding scores for light chain variants.
