@@ -2,7 +2,7 @@
 
 ## ENV setup
 ```
-conda env create -f env.yml
+conda env create -f environment.yml
 ```
 
 or create ENV with commands
