@@ -137,7 +137,7 @@ Now let's read data and make some plots
 # read data as dataframe
 dt <- read.csv(file="../result/CDRH3_count_table.csv", stringsAsFactors=F)
 dt[is.na(dt)] <-0
-sample_df <- read_excel("../sample info.xlsx")
+sample_df <- read_excel("doc/sample info.xlsx")
 ```
 
 CDRH3 library input and Expression quality
