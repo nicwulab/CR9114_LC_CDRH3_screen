@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from Bio import SeqIO
+from collections import Counter
 
 def parse_ab_table(filename):
   datasheet = pd.read_excel(filename, sheet_name='Sheet1')
@@ -100,6 +101,19 @@ def write_CDRL3_seq_logo(df, gene, CDRL3_len, high_bind_cutoff, low_bind_cutoff)
   make_sequence_logo(CDRL3_list_high_bind, 11, 'graph/seqlogo_'+gene+'_high_bind.png')
   make_sequence_logo(CDRL3_list_low_bind, 11, 'graph/seqlogo_'+gene+'_low_bind.png')
 
+def count_dict_to_file(bind_dict, outfile):
+  print ('writing: %s' % outfile)
+  outfile = open(outfile, 'w')
+  outfile.write("\t".join(['bind','resi','aa','freq'])+"\n")
+  for resi in bind_dict.keys():
+    aas = list(set([aa for bind in bind_dict[resi].keys() for aa in bind_dict[resi][bind].keys()]))
+    for bind in bind_dict[resi].keys():
+      for aa in aas:
+        count = bind_dict[resi][bind][aa] if aa in bind_dict[resi][bind].keys() else 0
+        freq  = float(count)/float(sum(bind_dict[resi][bind].values()))*100
+        outfile.write("\t".join(map(str,[bind, resi, aa, freq]))+"\n")
+  outfile.close()
+
 def write_CDRL3_motif_logo(df, high_bind_cutoff, low_bind_cutoff):
   motif_list_high_bind = list(df.loc[df['bind_score']>high_bind_cutoff]['CDRL3_motif'])
   motif_list_low_bind = list(df.loc[df['bind_score']<low_bind_cutoff]['CDRL3_motif'])
@@ -107,6 +121,13 @@ def write_CDRL3_motif_logo(df, high_bind_cutoff, low_bind_cutoff):
   print ("# of variant with binding score < %f: %i" % (low_bind_cutoff, len(motif_list_low_bind)))
   make_sequence_logo(motif_list_high_bind, 2, 'graph/seqlogo_motif_high_bind.png')
   make_sequence_logo(motif_list_low_bind, 2, 'graph/seqlogo_motif_low_bind.png')
+  high_bind_91 = Counter([motif[0] for motif in motif_list_high_bind])
+  high_bind_96 = Counter([motif[1] for motif in motif_list_high_bind])
+  low_bind_91  = Counter([motif[0] for motif in motif_list_low_bind])
+  low_bind_96  = Counter([motif[1] for motif in motif_list_low_bind])
+  bind_dict    = {'91':{'high_bind':high_bind_91, 'low_bind':low_bind_91}, 
+                  '96':{'high_bind':high_bind_96, 'low_bind':low_bind_96}}
+  count_dict_to_file(bind_dict, 'result/bind_aa_freq.tsv')
 
 def analyze_SHM(df, bind_cutoff):
   df = df.loc[(~df['ID'].str.contains('stop')) & \
