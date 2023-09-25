@@ -1,0 +1,327 @@
+---
+title: "tite_seq_plot.Rmd"
+output: html_document
+date: "2023-01-25"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+if(!file.exists("../result")){
+  dir.create(file.path("../result"))
+}
+if(!file.exists("KD regression")){
+  dir.create(file.path("KD regression"))
+}
+if(!file.exists("correlation")){
+  dir.create(file.path("correlation"))
+}
+```
+
+## R Markdown
+this is R Markdown used for tite-seq NGS data visualization
+
+```{r loard library}
+#load packages
+library(dplyr)
+library(ggplot2)
+library(data.table)
+library(broom)
+library(gridExtra)
+library(tidyr)
+library(readxl)
+library(drc)
+library(ggpubr)
+require(cowplot)
+```
+
+## define function
+
+```{r define function}
+plot_kd_reg <- function(dt1,nls_broom){
+  concentration = c(1:20 %o% 10^(-13:-7)) # this should only generate 120 estimates per titration (faster!)
+  nls_predictions <- dt1 %>%
+    dplyr::select(ID) %>%
+    merge(nls_broom %>%
+            dplyr::select(-statistic, -p.value, -std.error) %>%
+            spread(term, estimate),
+          by="ID") %>%
+    unique() %>%
+    merge(dt1 %>% dplyr::select(ID, Kd_SE) %>% unique(), by="ID") %>%
+    merge(as.data.frame(concentration), all=TRUE) %>%
+    mutate(mean_bin = a*(concentration/(concentration+Kd))+b)
+  
+  annotations <- dt1 %>%
+    dplyr::select(ID, Kd, Kd_SE,p.value) %>%
+    unique()
+  p<- ggplot(dt1, aes(concentration, bin_mean)) +
+    geom_point() +
+    geom_line(data = nls_predictions,
+              aes(concentration, mean_bin),
+              color="red") + 
+    scale_x_log10(lim=c(2e-14,2e-07)) +
+    xlab("HA (M)") +
+    ylab("Mean bin") +ggtitle(nls_predictions$ID[1])+
+    geom_text(
+      data    = annotations,
+      mapping = aes(x = 5e-12,
+                    y = 3,
+                    label = c(paste(
+                      "Kd=", format(Kd, digits=2),
+                      "+/-", format(Kd_SE, digits=1), "M"," (p=",format(p.value, digits=2),")"))),
+      size=2) +theme_cowplot(12)+
+    theme(axis.text=element_text(size=7,face="bold",colour = 'black'),
+          plot.title = element_text(color="black", size=8, face="bold.italic"),
+          axis.text.x=element_text(angle=0,hjust=0.5,vjust=0.5,colour = 'black'),
+          axis.text.y=element_text(hjust=0.5,vjust=0.5,colour = 'black'),
+          axis.title=element_text(size=7,face="bold"),
+          axis.line = element_line(colour = 'black', size = 0),
+          panel.border = element_rect(colour = "black", fill=NA, size=1))
+  ggsave(paste('KD regression/',nls_predictions$ID[1],'_regression_plot.png',sep=''),p,width=3, height=2, dpi=300,bg='white')
+}
+# define fun to plot correlation
+plot_cor <- function(dt,bin){
+  p1 <- ggscatter(dt, x = paste(bin,'_1',sep=''), y = paste(bin,'_2',sep=''), 
+                conf.int = TRUE, size = 1,
+                cor.coef = TRUE, cor.method = "spearman",
+                xlab = "Replicate 1", ylab = "Replicate 2")+ 
+  theme_cowplot(12)+
+  theme(axis.text=element_text(size=7,face="bold",colour = 'black'),
+        plot.title = element_text(color="black", size=8, face="bold.italic"),
+        axis.text.x=element_text(angle=0,hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.text.y=element_text(hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.title=element_text(size=7,face="bold"),
+        axis.line = element_line(colour = 'black', size = 0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+  ggsave(paste('correlation/correlation_',bin,'.png',sep=''),p1,width=3, height=3, dpi=300,bg='white')
+}
+# define fun to plot correlation
+plot_cor_log1 <- function(dt,bin){
+  p1 <- ggscatter(dt, x = paste(bin,'_1',sep=''), y = paste(bin,'_2',sep=''), 
+                conf.int = TRUE, size = 1,
+                cor.coef = TRUE, cor.method = "spearman",
+                xlab = "Replicate 1", ylab = "Replicate 2")+ 
+  yscale("log2", .format = TRUE)+ 
+  xscale("log2", .format = TRUE)+
+  theme_cowplot(12)+
+  theme(axis.text=element_text(size=7,face="bold",colour = 'black'),
+        plot.title = element_text(color="black", size=8, face="bold.italic"),
+        axis.text.x=element_text(angle=0,hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.text.y=element_text(hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.title=element_text(size=7,face="bold"),
+        axis.line = element_line(colour = 'black', size = 0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+  ggsave(paste('correlation/correlation_',bin,'.png',sep=''),p1,width=3, height=3, dpi=300,bg='white')
+}
+# define fun to plot correlation
+plot_cor_log2 <- function(dt,bin,concentration){
+  p1 <- ggscatter(dt, x = paste(bin,'_1',sep=''), y = paste(bin,'_2',sep=''), 
+                conf.int = TRUE, size = 1,
+                cor.coef = TRUE, cor.method = "spearman",
+                xlab = "Replicate 1", ylab = "Replicate 2")+ 
+  yscale("log2", .format = TRUE)+ 
+  xscale("log2", .format = TRUE)+
+  theme_cowplot(12)+
+  theme(axis.text=element_text(size=7,face="bold",colour = 'black'),
+        plot.title = element_text(color="black", size=8, face="bold.italic"),
+        axis.text.x=element_text(angle=0,hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.text.y=element_text(hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.title=element_text(size=7,face="bold"),
+        axis.line = element_line(colour = 'black', size = 0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+  ggsave(paste('correlation/correlation_',bin,concentration, '.png',sep=''),p1,width=3, height=3, dpi=300,bg='white')
+}
+```
+
+Now let's read data and make some plots
+```{r}
+# read data as dataframe
+dt <- read.csv(file="../result/CDRH3_count_table.csv", stringsAsFactors=F)
+dt[is.na(dt)] <-0
+sample_df <- read_excel("doc/sample info.xlsx")
+```
+
+CDRH3 library input and Expression quality
+
+```{r}
+input_df <- dt %>% filter(concentration=='A')%>%
+  dplyr::select(concentration,Input1_Expression_1,Input2_Expression_2,Input3,Input4) %>% 
+  filter(Input1_Expression_1>=10)%>%
+  filter(Input2_Expression_2>=10)%>%
+  filter(Input3>=10)%>%
+  filter(Input4>=10)
+# correlation for inputs used for CDRH3 lib expression
+input_cor <- ggscatter(input_df, x = 'Input1_Expression_1', y ='Input2_Expression_2', conf.int = TRUE, size = 1,cor.coef = TRUE, cor.method = "spearman", xlab = "Replicate 1", ylab = "Replicate 2") + 
+  theme_cowplot(12)+
+  theme(axis.text=element_text(size=7,face="bold",colour = 'black'),
+        plot.title = element_text(color="black", size=8, face="bold.italic"),
+        axis.text.x=element_text(angle=0,hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.text.y=element_text(hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.title=element_text(size=7,face="bold"),
+        axis.line = element_line(colour = 'black', size = 0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+ggsave('correlation/input_expression_correlation.png',input_cor,width=3, height=3, dpi=300,bg='white')
+# correlation plot for inputs for CDRH3 lib
+input_cor2 <- ggscatter(input_df, x = 'Input3', y ='Input4', conf.int = TRUE, size = 1,cor.coef = TRUE, cor.method = "spearman", xlab = "Replicate 1", ylab = "Replicate 2") + 
+  theme_cowplot(12)+
+  theme(axis.text=element_text(size=7,face="bold",colour = 'black'),
+        plot.title = element_text(color="black", size=8, face="bold.italic"),
+        axis.text.x=element_text(angle=0,hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.text.y=element_text(hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.title=element_text(size=7,face="bold"),
+        axis.line = element_line(colour = 'black', size = 0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+ggsave('correlation/input_correlation.png',input_cor2,width=3, height=3, dpi=300,bg='white')
+
+# correlation plot for inputs for CDRH3 lib
+input_cor3 <- ggscatter(input_df, x = 'Input1_Expression_1', y ='Input4', conf.int = TRUE, size = 1,cor.coef = TRUE, cor.method = "spearman", xlab = "Replicate 1", ylab = "Replicate 2") + 
+  theme_cowplot(12)+
+  theme(axis.text=element_text(size=7,face="bold",colour = 'black'),
+        plot.title = element_text(color="black", size=8, face="bold.italic"),
+        axis.text.x=element_text(angle=0,hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.text.y=element_text(hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.title=element_text(size=7,face="bold"),
+        axis.line = element_line(colour = 'black', size = 0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+ggsave('correlation/input_and_expression_input_correlation.png',input_cor3,width=3, height=3, dpi=300,bg='white')
+
+# count distribution plot for inputs
+count_p <-ggplot(input_df, aes(x=Input3)) + 
+  geom_histogram(binwidth=0.15,
+                   colour="black", fill="white") +
+  xscale("log10", .format = TRUE)+
+  ylab("Count") +
+  theme_cowplot(12)+
+  theme(axis.text=element_text(size=7,face="bold",colour = 'black'),
+        plot.title = element_text(color="black", size=8, face="bold.italic"),
+        axis.text.x=element_text(angle=0,hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.text.y=element_text(hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.title=element_text(size=7,face="bold"),
+        axis.line = element_line(colour = 'black', size = 0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+ggsave('correlation/input_distribution.png',count_p,width=3, height=3, dpi=300,bg='white')
+```
+
+Data normalization
+
+```{r}
+# make total count by bin and concentration
+bin_count <-dt %>%
+  group_by(concentration) %>%
+  mutate(bin_0_1=sum(bin_0_1),
+         bin_1_1=sum(bin_1_1),
+         bin_2_1=sum(bin_2_1),
+         bin_0_2=sum(bin_0_2),
+         bin_1_2=sum(bin_1_2),
+         bin_2_2=sum(bin_2_2))%>%
+  dplyr::select(concentration,bin_0_1,bin_1_1,bin_2_1,bin_0_2,bin_1_2,bin_2_2) %>% unique()
+# wide to long
+bin_count_long <- gather(bin_count, bin, total_count, bin_0_1:bin_2_2, factor_key=TRUE)
+# merge data information (cell number) and count table
+ratio_df <- merge(bin_count_long,sample_df,by=c('concentration','bin')) %>%
+  mutate(ratio=total_count/`sorted cell`)
+# wide to long
+dt_long <- gather(dt, bin, count, bin_0_1:bin_2_2, factor_key=TRUE)
+# normalization by count/cell ratio
+dt_norm <- merge(dt_long,ratio_df,by=c('concentration','bin'))%>%
+  mutate(count_norm=count/ratio)
+# save date
+write.csv(dt_norm,'../result/CDRH3_count_table_norm.csv')
+
+# long to wide
+dt <- spread(dt_norm %>%dplyr::select(ID,concentration,bin,count_norm), bin, count_norm)
+dt[is.na(dt)] <-0
+```
+
+data clean
+```{r}
+# add filter for count table
+dt <- dt %>%
+  group_by(concentration) %>%
+  filter(bin_0_2+bin_1_2+bin_2_2>=30)%>%
+  filter(bin_0_1+bin_1_1+bin_2_1>=30)
+
+# calculate bin mean
+dt <- dt %>%
+  group_by(ID) %>%
+  mutate(bin_mean_1 = (bin_0_1*1+bin_1_1*2+bin_2_1*3)/(bin_0_1+bin_1_1+bin_2_1),
+         bin_mean_2 = (bin_0_2*1+bin_1_2*2+bin_2_2*3)/(bin_0_2+bin_1_2+bin_2_2),
+         bin_mean = (bin_mean_1+bin_mean_2)/2) %>% 
+  filter(n() >= 5)
+
+dt$concentration[dt$concentration == 'A'] <-3e-08
+dt$concentration[dt$concentration == 'B'] <-3e-09
+dt$concentration[dt$concentration == 'C'] <-3e-10
+dt$concentration[dt$concentration == 'D'] <-3e-11
+dt$concentration[dt$concentration == 'E'] <-3e-12
+dt$concentration[dt$concentration == 'Neg'] <-0e+0
+dt$concentration = as.numeric(as.character(dt$concentration))
+```
+
+make correlation plot for replicates
+
+```{r}
+# make a plot for correlation for bin mean
+plot_cor(dt,'bin_mean')
+
+# make a plot for correlation by different bin
+plot_cor_log1(dt,'bin_0')
+plot_cor_log1(dt,'bin_1')
+plot_cor_log1(dt,'bin_2')
+
+# make a plot for correlation by different concentration
+con = c(0e+0,3e-12,3e-11,3e-10,3e-09,3e-08)
+for (c in con) {
+  dt1 <- dt %>% filter(concentration ==c)
+  plot_cor_log2(dt1,'bin_0',c)
+  plot_cor_log2(dt1,'bin_1',c)
+  plot_cor_log2(dt1,'bin_2',c)
+}
+
+
+```
+
+loop over sample ID to do KD regression
+
+```{r}
+# make sure bin_0 is greater than bin_1 for no antigen
+condition_ls <- dt %>% 
+  filter(concentration==0) %>%
+  filter(bin_0_2 > bin_1_2)
+chosen_id <-unique(condition_ls$ID)
+
+KD_ls <- list()
+# loop over sample id
+for (id in chosen_id) {
+  tryCatch({
+    single_df <-  dt %>% filter(ID == id)
+    nls_broom <- single_df %>%
+      group_by(ID) %>%
+      do(tidy(nls(bin_mean ~ a*(concentration/(concentration+Kd))+b,
+                  data=.,
+                  start=list(a=2,b=1,Kd=1e-10),
+                  lower=list(a=1,b=1,Kd=1e-15),
+                  upper=list(a=2,b=1.5,Kd=1e-5),
+                  algorithm="port")))
+    single_df <- single_df %>%
+      merge(nls_broom %>%
+              filter(term=="Kd") %>%
+              rename(Kd="estimate",Kd_SE="std.error"), by="ID")
+    
+    plot_kd_reg(single_df,nls_broom)
+    
+    KD_ls[[id]] <- single_df
+
+    }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+}
+# merge kd dataframe by kd list
+kd_df <-do.call("rbind",KD_ls)
+
+# get kd summary
+kd_summary <- kd_df %>%
+  dplyr::select(ID, Kd, Kd_SE,p.value) %>%
+  unique()
+# save kd table
+write.csv(kd_summary,"../result/CDRH3_KD_table_summary.csv", row.names = FALSE)
+
+```
+

@@ -1,0 +1,234 @@
+---
+title: "tite_seq_plot.Rmd"
+output: html_document
+date: "2023-01-28"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+if(!file.exists("../result")){
+  dir.create(file.path("../result"))
+}
+if(!file.exists("KD regression")){
+  dir.create(file.path("KD regression"))
+}
+if(!file.exists("correlation")){
+  dir.create(file.path("correlation"))
+}
+```
+
+## R Markdown
+this is R Markdown used for tite-seq NGS data visualization
+
+```{r loard library}
+#load packages
+library(dplyr)
+library(ggplot2)
+library(data.table)
+library(broom)
+library(gridExtra)
+library(tidyr)
+library(readxl)
+library(drc)
+library(ggpubr)
+require(cowplot)
+```
+
+## define function
+
+```{r define function}
+# define fun to plot correlation
+plot_cor <- function(dt,bin){
+  p1 <- ggscatter(dt, x = paste(bin,'_1',sep=''), y = paste(bin,'_2',sep=''), 
+                conf.int = TRUE, size = 1,
+                cor.coef = TRUE, cor.method = "spearman",
+                xlab = "Replicate 1", ylab = "Replicate 2")+ 
+  theme_cowplot(12)+
+  theme(axis.text=element_text(size=7,face="bold",colour = 'black'),
+        plot.title = element_text(color="black", size=8, face="bold.italic"),
+        axis.text.x=element_text(angle=0,hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.text.y=element_text(hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.title=element_text(size=7,face="bold"),
+        axis.line = element_line(colour = 'black', size = 0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+  ggsave(paste('correlation/correlation_',bin,'.png',sep=''),p1,width=3, height=3, dpi=300,bg='white')
+}
+# define fun to plot correlation
+plot_cor_log1 <- function(dt,bin){
+  p1 <- ggscatter(dt, x = paste(bin,'_1',sep=''), y = paste(bin,'_2',sep=''), 
+                conf.int = TRUE, size = 1,
+                cor.coef = TRUE, cor.method = "spearman",
+                xlab = "Replicate 1", ylab = "Replicate 2")+ 
+  yscale("log2", .format = TRUE)+ 
+  xscale("log2", .format = TRUE)+
+  theme_cowplot(12)+
+  theme(axis.text=element_text(size=7,face="bold",colour = 'black'),
+        plot.title = element_text(color="black", size=8, face="bold.italic"),
+        axis.text.x=element_text(angle=0,hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.text.y=element_text(hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.title=element_text(size=7,face="bold"),
+        axis.line = element_line(colour = 'black', size = 0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+  ggsave(paste('correlation/correlation_',bin,'.png',sep=''),p1,width=3, height=3, dpi=300,bg='white')
+}
+# define fun to plot correlation
+plot_cor_log2 <- function(dt,bin,concentration){
+  p1 <- ggscatter(dt, x = paste(bin,'_1',sep=''), y = paste(bin,'_2',sep=''), 
+                conf.int = TRUE, size = 1,
+                cor.coef = TRUE, cor.method = "spearman",
+                xlab = "Replicate 1", ylab = "Replicate 2")+ 
+  yscale("log2", .format = TRUE)+ 
+  xscale("log2", .format = TRUE)+
+  theme_cowplot(12)+
+  theme(axis.text=element_text(size=7,face="bold",colour = 'black'),
+        plot.title = element_text(color="black", size=8, face="bold.italic"),
+        axis.text.x=element_text(angle=0,hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.text.y=element_text(hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.title=element_text(size=7,face="bold"),
+        axis.line = element_line(colour = 'black', size = 0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+  ggsave(paste('correlation/correlation_',bin,concentration, '.png',sep=''),p1,width=3, height=3, dpi=300,bg='white')
+}
+```
+
+Now let's read data and make some plots
+```{r}
+# read data as dataframe
+dt <- read.csv(file="../result/Lambad_count_table.csv", stringsAsFactors=F)%>%
+  group_by(concentration) %>%
+  filter(L_input_Expression_1>=10)%>%
+  filter(L_input_Expression_2>=10)
+dt[is.na(dt)] <-0
+sample_df <- read_excel("doc/sample info.xlsx")
+
+write.csv(dt,"../result/Lambda_count_table_clean.csv", row.names = FALSE)
+```
+
+Lambda library input and Expression quality
+
+```{r}
+input_df <- dt %>% filter(concentration=='A')%>%
+  filter(L_input_Binding_1>=10)%>%
+  filter(L_input_Binding_2>=10)
+# correlation for inputs used for CDRH3 lib expression
+input_cor <- ggscatter(input_df, x = 'L_input_Binding_1', y ='L_input_Binding_2', conf.int = TRUE, size = 1,cor.coef = TRUE, cor.method = "spearman", xlab = "Replicate 1", ylab = "Replicate 2") + 
+  theme_cowplot(12)+
+  theme(axis.text=element_text(size=7,face="bold",colour = 'black'),
+        plot.title = element_text(color="black", size=8, face="bold.italic"),
+        axis.text.x=element_text(angle=0,hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.text.y=element_text(hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.title=element_text(size=7,face="bold"),
+        axis.line = element_line(colour = 'black', size = 0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+ggsave('correlation/Lambda_input_correlation.png',input_cor,width=3, height=3, dpi=300,bg='white')
+# correlation plot for inputs for CDRH3 lib
+input_cor2 <- ggscatter(input_df, x = 'L_input_Expression_1', y ='L_input_Expression_2', conf.int = TRUE, size = 1,cor.coef = TRUE, cor.method = "spearman", xlab = "Replicate 1", ylab = "Replicate 2") + 
+  theme_cowplot(12)+
+  theme(axis.text=element_text(size=7,face="bold",colour = 'black'),
+        plot.title = element_text(color="black", size=8, face="bold.italic"),
+        axis.text.x=element_text(angle=0,hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.text.y=element_text(hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.title=element_text(size=7,face="bold"),
+        axis.line = element_line(colour = 'black', size = 0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+ggsave('correlation/Lambda_input_expression_correlation.png',input_cor2,width=3, height=3, dpi=300,bg='white')
+
+# correlation plot for inputs for CDRH3 lib
+input_cor3 <- ggscatter(input_df, x = 'L_input_Expression_1', y ='L_input_Binding_1', conf.int = TRUE, size = 1,cor.coef = TRUE, cor.method = "spearman", xlab = "Replicate 1", ylab = "Replicate 2") + 
+  theme_cowplot(12)+
+  theme(axis.text=element_text(size=7,face="bold",colour = 'black'),
+        plot.title = element_text(color="black", size=8, face="bold.italic"),
+        axis.text.x=element_text(angle=0,hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.text.y=element_text(hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.title=element_text(size=7,face="bold"),
+        axis.line = element_line(colour = 'black', size = 0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+ggsave('correlation/Lambda_input_and_expression_input_correlation.png',input_cor3,width=3, height=3, dpi=300,bg='white')
+
+# count distribution plot for inputs
+count_p <-ggplot(input_df, aes(x=L_input_Binding_1)) + 
+  geom_histogram(binwidth=0.15,
+                   colour="black", fill="white") +
+  xscale("log10", .format = TRUE)+
+  ylab("Count") +
+  theme_cowplot(12)+
+  theme(axis.text=element_text(size=7,face="bold",colour = 'black'),
+        plot.title = element_text(color="black", size=8, face="bold.italic"),
+        axis.text.x=element_text(angle=0,hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.text.y=element_text(hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.title=element_text(size=7,face="bold"),
+        axis.line = element_line(colour = 'black', size = 0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+ggsave('correlation/Lamdba_input_distribution.png',count_p,width=3, height=3, dpi=300,bg='white')
+```
+
+Now let's read Kappa data and make some plots
+```{r}
+# read data as dataframe
+dt <- read.csv(file="../result/Kappa_count_table.csv", stringsAsFactors=F)%>%
+  group_by(concentration) %>%
+  filter(K_input_Expression_1>=10)%>%
+  filter(K_input_Expression_2>=10)
+dt[is.na(dt)] <-0
+sample_df <- read_excel("doc/sample info.xlsx")
+
+write.csv(dt,"../result/Kappa_count_table_clean.csv", row.names = FALSE)
+```
+
+Correlation plots
+
+```{r}
+input_df <- dt %>% filter(concentration=='A')%>%
+  filter(K_input_Binding_1>=10)%>%
+  filter(K_input_Binding_2>=10)
+# correlation for inputs used for CDRH3 lib expression
+input_cor <- ggscatter(input_df, x = 'K_input_Binding_1', y ='K_input_Binding_2', conf.int = TRUE, size = 1,cor.coef = TRUE, cor.method = "spearman", xlab = "Replicate 1", ylab = "Replicate 2") + 
+  theme_cowplot(12)+
+  theme(axis.text=element_text(size=7,face="bold",colour = 'black'),
+        plot.title = element_text(color="black", size=8, face="bold.italic"),
+        axis.text.x=element_text(angle=0,hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.text.y=element_text(hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.title=element_text(size=7,face="bold"),
+        axis.line = element_line(colour = 'black', size = 0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+ggsave('correlation/Kappa_input_correlation.png',input_cor,width=3, height=3, dpi=300,bg='white')
+# correlation plot for inputs for CDRH3 lib
+input_cor2 <- ggscatter(input_df, x = 'K_input_Expression_1', y ='K_input_Expression_2', conf.int = TRUE, size = 1,cor.coef = TRUE, cor.method = "spearman", xlab = "Replicate 1", ylab = "Replicate 2") + 
+  theme_cowplot(12)+
+  theme(axis.text=element_text(size=7,face="bold",colour = 'black'),
+        plot.title = element_text(color="black", size=8, face="bold.italic"),
+        axis.text.x=element_text(angle=0,hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.text.y=element_text(hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.title=element_text(size=7,face="bold"),
+        axis.line = element_line(colour = 'black', size = 0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+ggsave('correlation/Kappa_input_expression_correlation.png',input_cor2,width=3, height=3, dpi=300,bg='white')
+
+# correlation plot for inputs for CDRH3 lib
+input_cor3 <- ggscatter(input_df, x = 'K_input_Expression_1', y ='K_input_Binding_1', conf.int = TRUE, size = 1,cor.coef = TRUE, cor.method = "spearman", xlab = "Replicate 1", ylab = "Replicate 2") + 
+  theme_cowplot(12)+
+  theme(axis.text=element_text(size=7,face="bold",colour = 'black'),
+        plot.title = element_text(color="black", size=8, face="bold.italic"),
+        axis.text.x=element_text(angle=0,hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.text.y=element_text(hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.title=element_text(size=7,face="bold"),
+        axis.line = element_line(colour = 'black', size = 0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+ggsave('correlation/Kappa_input_and_expression_input_correlation.png',input_cor3,width=3, height=3, dpi=300,bg='white')
+
+# count distribution plot for inputs
+count_p <-ggplot(input_df, aes(x=K_input_Binding_1)) + 
+  geom_histogram(binwidth=0.15,
+                   colour="black", fill="white") +
+  xscale("log10", .format = TRUE)+
+  ylab("Count") +
+  theme_cowplot(12)+
+  theme(axis.text=element_text(size=7,face="bold",colour = 'black'),
+        plot.title = element_text(color="black", size=8, face="bold.italic"),
+        axis.text.x=element_text(angle=0,hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.text.y=element_text(hjust=0.5,vjust=0.5,colour = 'black'),
+        axis.title=element_text(size=7,face="bold"),
+        axis.line = element_line(colour = 'black', size = 0),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+ggsave('correlation/Kappa_input_distribution.png',count_p,width=3, height=3, dpi=300,bg='white')
+```
