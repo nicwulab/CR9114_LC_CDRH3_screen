@@ -36,3 +36,4 @@ conda install -c bioconda -c anaconda -c conda-forge \
 4. Run ``Rscript code/plot_CDRH3_KD_distrib.R`` to plot the distribution of expression and binding scores, and analyzed the effect of Y98 on binding.
 5. Run ``Rscript code/plot_CDRH3_exp_vs_KD.R`` to plot expression scores vs binding scores.
 6. Run ``Rscript code/plot_CDRH3_KD_heatmap.R`` to plot the heatmap to show the effect of single mutants on binding.
+7. Run ``Rscript code/plot_aa_freq.R`` to plot the amino acid usage at VL residues 91 and 96
